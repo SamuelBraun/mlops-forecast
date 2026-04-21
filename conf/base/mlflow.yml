@@ -1,0 +1,21 @@
+# kedro-mlflow configuration.
+#
+# We install kedro-mlflow but disable its automatic pipeline-level run
+# tracking, because the training nodes start and close their own MLflow
+# runs explicitly. The two run lifecycles conflict if both are active.
+# Disabling tracking here keeps the package available (its dataset
+# wrappers and CLI utilities work without the hook) without producing
+# duplicate or orphaned MLflow runs.
+
+tracking:
+  disable_tracking:
+    pipelines: ["__default__", "ingest", "prepare", "train_and_select", "inference",
+                "data_quality", "data_cleaning", "data_feat_engineering",
+                "data_split", "model_train", "model_selection", "model_predict",
+                "data_drifts"]
+    disable_autologging: true
+
+server:
+  # We let the training nodes choose the URI themselves; see
+  # _setup_mlflow() in model_train/nodes.py.
+  mlflow_tracking_uri: null

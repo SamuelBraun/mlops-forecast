@@ -1,0 +1,172 @@
+# ============================================================
+# Global Kedro parameters — referenced in pipeline nodes via
+# `parameters["key"]` or injected via catalog entries.
+# Secrets go in conf/local/credentials.yml (gitignored).
+# ============================================================
+
+# ----------------------------------------------------------
+# Dataset
+# ----------------------------------------------------------
+dataset:
+  url: "https://data.open-power-system-data.org/time_series/latest/time_series_60min_singleindex.csv"
+  raw_filename: "opsd_germany_hourly.csv"
+  target_column: "load_mw"
+  feature_columns:
+    - "wind_mw"
+    - "solar_mw"
+  timestamp_column: "timestamp"
+  frequency: "h"  # hourly
+  timezone: "UTC"
+
+# ----------------------------------------------------------
+# Data Quality (Great Expectations)
+# ----------------------------------------------------------
+data_quality:
+  expectation_suite_name: "opsd_electricity_suite"
+  min_load_mw: 20000.0
+  max_load_mw: 90000.0
+  max_null_fraction: 0.02
+  min_wind_mw: 0.0
+  max_wind_mw: 60000.0
+  min_solar_mw: 0.0
+  max_solar_mw: 40000.0
+
+# ----------------------------------------------------------
+# Data Cleaning
+# ----------------------------------------------------------
+data_cleaning:
+  fill_method: "time"             # pandas interpolation method for gaps ≤ max_gap_hours
+  max_gap_hours: 6                # gaps > 6 h are flagged as unresolvable
+  outlier_method: "iqr"           # "iqr" | "isolation_forest"
+  iqr_multiplier: 3.0             # IQR fence multiplier for outlier detection
+  isolation_forest_contamination: 0.01
+
+# ----------------------------------------------------------
+# Feature Engineering
+# ----------------------------------------------------------
+feature_engineering:
+  lag_hours: [1, 2, 3, 6, 12, 24, 48, 168]  # 168 = 1 week
+  rolling_windows: [6, 12, 24, 168]           # hours
+  fourier_periods: [24, 168]                  # daily + weekly seasonality
+  fourier_order: 3                            # sine/cosine pairs per period
+  country_holidays: "DE"                      # ISO 3166-1 alpha-2
+  drop_na_after_features: true               # drop rows with NaN from lagging
+
+# Feast publication is a separate step (`make feast-publish`); see
+# `feature_store/feature_repo/electricity.py` for the schema definition.
+
+# ----------------------------------------------------------
+# Data Split
+# ----------------------------------------------------------
+data_split:
+  # Chronological boundaries — never random
+  train_end: "2018-12-31 23:00:00"  # 2015-01-01 → 2018-12-31 (4 years)
+  val_end:   "2019-12-31 23:00:00"  # 2019-01-01 → 2019-12-31 (1 year)
+  # 2020-01-01 → 2020-12-31 is test (includes COVID-19 lockdown period)
+
+  # Walk-forward cross-validation
+  cv_n_splits: 5
+  cv_gap_hours: 24           # gap between train and val to prevent leakage
+  cv_test_size_hours: 720    # 30-day validation window
+
+# ----------------------------------------------------------
+# Model Training
+# ----------------------------------------------------------
+model_train:
+  forecast_horizon: 24        # hours ahead
+  experiment_name: "ElectricityForecast"
+  register_model_name: "ElectricityForecast"
+
+  # Seasonal Naive baseline
+  seasonal_naive:
+    seasonality_period: 168   # 1 week in hours
+
+  # Prophet
+  prophet:
+    seasonality_mode: "multiplicative"
+    daily_seasonality: true
+    weekly_seasonality: true
+    yearly_seasonality: true
+    changepoint_prior_scale: 0.05
+    n_changepoints: 25
+
+  # LightGBM
+  lightgbm:
+    n_estimators: 500
+    learning_rate: 0.05
+    num_leaves: 63
+    min_child_samples: 20
+    subsample: 0.8
+    colsample_bytree: 0.8
+    reg_alpha: 0.1
+    reg_lambda: 0.1
+    early_stopping_rounds: 50
+    random_state: 42
+
+  # SHAP
+  shap:
+    max_display: 20
+    explainer_type: "tree"  # "tree" for LightGBM, "kernel" fallback
+
+  # Walk-forward (expanding window) cross-validation for LightGBM
+  # Each fold logs as a nested MLflow run so we can see MAPE variance over time
+  walk_forward_cv:
+    enabled: true
+    n_splits: 4
+
+  # LightGBM quantile heads, registered together with the point estimator
+  # so the API can serve point + interval from a single model load
+  prediction_intervals:
+    enabled: true
+    lower_alpha: 0.1
+    upper_alpha: 0.9
+
+# ----------------------------------------------------------
+# Model Selection
+# ----------------------------------------------------------
+model_selection:
+  primary_metric: "val_mape"     # lower is better
+  secondary_metric: "val_rmse"
+  staging_stage: "Staging"
+  production_stage: "Production"
+
+# ----------------------------------------------------------
+# Model Prediction
+# ----------------------------------------------------------
+model_predict:
+  model_name: "ElectricityForecast"
+  model_stage: "Production"
+  output_quantiles: [0.1, 0.5, 0.9]  # for prediction intervals
+
+  # Adaptive Conformal Inference baseline. Computed alongside the deployed
+  # split-conformal interval as a what-if comparison; the deployed model is
+  # not modified. gamma is the ACI learning rate (Gibbs and Candes 2021):
+  # smaller is more stable, larger reacts faster to drift.
+  aci:
+    enabled: true
+    target_coverage: 0.8
+    gamma: 0.005
+
+# ----------------------------------------------------------
+# Drift Detection
+# ----------------------------------------------------------
+data_drifts:
+  # Reference baseline: full pre-COVID year. We compare two CURRENT windows
+  # against this same reference to demonstrate the monitor is falsifiable.
+  reference_start: "2019-01-01"
+  reference_end:   "2019-06-30"   # half year so the clean window is independent
+
+  # Clean control window — same year, different half. Distribution should
+  # match reference; we expect ~0 features to drift.
+  clean_start:     "2019-07-01"
+  clean_end:       "2019-12-31"
+
+  # Perturbed window — German COVID lockdown. Known structural break; we
+  # expect almost all features to drift.
+  perturb_start:   "2020-03-15"
+  perturb_end:     "2020-05-15"
+
+  # Legacy fields kept for back-compat (concept drift baseline computation)
+  analysis_start:  "2020-01-01"
+  analysis_end:    "2020-06-30"
+  drift_threshold: 0.05

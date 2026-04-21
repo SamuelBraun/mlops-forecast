@@ -1,0 +1,120 @@
+# ============================================================
+# Kedro Data Catalog
+# ============================================================
+
+# ------------------------------------------------------------------
+# Layer 01 — Raw
+# ------------------------------------------------------------------
+raw_electricity:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/opsd_germany_hourly.csv
+  load_args:
+    low_memory: false
+
+# ------------------------------------------------------------------
+# Layer 02 — Intermediate (after cleaning)
+# ------------------------------------------------------------------
+clean_electricity:
+  type: pandas.ParquetDataset
+  filepath: data/02_intermediate/clean_electricity.parquet
+
+# ------------------------------------------------------------------
+# Layer 04 — Feature (after feature engineering)
+# ------------------------------------------------------------------
+features_electricity:
+  type: pandas.ParquetDataset
+  filepath: data/04_feature/features_electricity.parquet
+
+# ------------------------------------------------------------------
+# Layer 05 — Model Input (after split)
+# ------------------------------------------------------------------
+X_train:
+  type: pandas.ParquetDataset
+  filepath: data/05_model_input/X_train.parquet
+
+y_train:
+  type: pandas.ParquetDataset
+  filepath: data/05_model_input/y_train.parquet
+
+X_val:
+  type: pandas.ParquetDataset
+  filepath: data/05_model_input/X_val.parquet
+
+y_val:
+  type: pandas.ParquetDataset
+  filepath: data/05_model_input/y_val.parquet
+
+X_test:
+  type: pandas.ParquetDataset
+  filepath: data/05_model_input/X_test.parquet
+
+y_test:
+  type: pandas.ParquetDataset
+  filepath: data/05_model_input/y_test.parquet
+
+split_metadata:
+  type: json.JSONDataset
+  filepath: data/05_model_input/split_metadata.json
+
+# ------------------------------------------------------------------
+# Layer 06 — Models
+# ------------------------------------------------------------------
+shap_values:
+  type: pandas.ParquetDataset
+  filepath: data/06_models/shap_values.parquet
+
+feature_importance:
+  type: pandas.CSVDataset
+  filepath: data/06_models/feature_importance.csv
+
+model_selection_results:
+  type: pandas.CSVDataset
+  filepath: data/06_models/model_selection_results.csv
+
+# Cross-pipeline run info (persisted so pipelines can run independently)
+naive_run_info:
+  type: json.JSONDataset
+  filepath: data/06_models/naive_run_info.json
+
+lgbm_run_info:
+  type: json.JSONDataset
+  filepath: data/06_models/lgbm_run_info.json
+
+prophet_run_info:
+  type: json.JSONDataset
+  filepath: data/06_models/prophet_run_info.json
+
+# ------------------------------------------------------------------
+# Layer 07 — Model Output
+# ------------------------------------------------------------------
+predictions:
+  type: pandas.ParquetDataset
+  filepath: data/07_model_output/predictions.parquet
+
+# ------------------------------------------------------------------
+# Layer 08 — Reporting
+# ------------------------------------------------------------------
+data_quality_report:
+  type: text.TextDataset
+  filepath: data/08_reporting/data_quality/ge_validation_result.json
+
+drift_report_reference:
+  type: text.TextDataset
+  filepath: data/08_reporting/drift/evidently_reference.json
+
+drift_report_analysis:
+  type: text.TextDataset
+  filepath: data/08_reporting/drift/evidently_analysis.json
+
+drift_results:
+  type: pandas.CSVDataset
+  filepath: data/08_reporting/drift/drift_results.csv
+
+concept_drift_results:
+  type: pandas.CSVDataset
+  filepath: data/08_reporting/drift/concept_drift_results.csv
+
+shap_summary_plot:
+  type: matplotlib.MatplotlibWriter
+  filepath: data/08_reporting/explainability/shap_summary.png
+  overwrite: true

@@ -1,0 +1,118 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mlops-forecast"
+version = "0.1.0"
+description = "MLOps time series forecasting: hourly electricity load prediction"
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+# Pinned to Python 3.11 / 3.12 to align with the course handout's stack.
+# Every package in this list was selected to match the rubric where the
+# rubric is specific, and to satisfy the engineering constraints of the
+# project where the rubric leaves the choice open (drift library, feature
+# store).
+dependencies = [
+    # Orchestration
+    "kedro==0.19.8",
+    "kedro-datasets[pandas.CSVDataset,pandas.ParquetDataset,json.JSONDataset]>=3.0.0",
+    "kedro-viz>=9.0,<11.0",
+    # Experiment tracking and model registry
+    "mlflow>=2.15,<3.0",
+    "kedro-mlflow>=0.12,<1.0",
+    # Data quality. We use Great Expectations v1, the current API; v0.18
+    # uses a project-context layout that the v1 ephemeral-context API
+    # replaces with a single in-memory object.
+    "great-expectations>=1.0,<2.0",
+    # Models
+    "lightgbm>=4.5,<5.0",
+    "prophet>=1.1.6",
+    # statsmodels is a Prophet runtime dependency; pinned so resolution
+    # failures surface at install time rather than at import.
+    "statsmodels>=0.14.4",
+    "scikit-learn>=1.5",
+    # Drift detection: Evidently, listed in the handout as a permitted
+    # alternative to NannyML and consistently the more maintained choice.
+    "evidently>=0.4,<1.0",
+    # Explainability
+    "shap>=0.46",
+    # Data and compute
+    "pandas>=2.0,<3.0",
+    "numpy>=1.26,<3.0",
+    "scipy>=1.10",
+    "pyarrow>=14,<18",
+    # Serving
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.5",
+    # Feature store: Feast over Hopsworks because Feast runs locally with
+    # a SQLite online store and needs no account, which keeps the project
+    # reproducible from a clean clone.
+    "feast>=0.40,<1.0",
+    "tenacity>=8.0,<10",
+    # Dashboard
+    "streamlit>=1.30",
+    "plotly>=5.18",
+    "requests>=2.31",
+    # Utilities
+    "holidays>=0.50",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<9.0",
+    "pytest-cov>=6.0,<7.0",
+    "pytest-mock>=3.14,<4.0",
+    # httpx is only needed at test time by FastAPI's TestClient.
+    "httpx>=0.27",
+    "ruff>=0.7,<1.0",
+    "mypy>=1.13,<2.0",
+    "pre-commit>=4.0,<5.0",
+    "ipykernel>=6.29,<7.0",
+    "jupyterlab>=4.3,<5.0",
+]
+
+[project.scripts]
+mlops-forecast = "mlops_forecast.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+# N802/N803/N806: PascalCase identifiers like X_train, X_val, X_test are
+# idiomatic in ML / scikit-learn code and we keep them deliberately.
+ignore = ["E501", "N802", "N803", "N806"]
+
+[tool.kedro]
+package_name = "mlops_forecast"
+project_name = "mlops-forecast"
+kedro_init_version = "0.19.8"
+source_dir = "src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# -W flags must come *before* warning-class filters so they apply at import.
+# Kedro warns about Python 3.13 at module import time, before pytest's
+# `filterwarnings` config takes effect — the -W flag fixes that.
+addopts = "-W ignore:Kedro --cov=src/mlops_forecast --cov-report=term-missing --cov-fail-under=60"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::FutureWarning",
+    "ignore::UserWarning",
+]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.kedro_telemetry]
+project_id = "76fb407d873b44ce8d92d2024eca4e7f"

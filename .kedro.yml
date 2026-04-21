@@ -1,0 +1,4 @@
+project_name: mlops-forecast
+kedro_init_version: "0.19.8"
+tools: none
+example_pipeline: "False"

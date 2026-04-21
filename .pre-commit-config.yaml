@@ -1,0 +1,38 @@
+# Pre-commit hooks. Run on every `git commit` after `pre-commit install`.
+# To run on the whole repo manually: `pre-commit run --all-files`.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: \.csv$
+      - id: end-of-file-fixer
+        exclude: \.csv$
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.4
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  # Forbid committing local-only secrets and generated artifacts. The .gitignore
+  # already excludes them, but a pre-commit fence is cheap belt-and-braces.
+  - repo: local
+    hooks:
+      - id: no-secrets
+        name: Reject conf/local/credentials.yml
+        entry: bash -c '! git diff --cached --name-only | grep -E "^conf/local/credentials\.yml$"'
+        language: system
+        pass_filenames: false
+      - id: no-mlflow-db
+        name: Reject committed mlflow.db / mlruns
+        entry: bash -c '! git diff --cached --name-only | grep -E "(^|/)(mlflow\.db|mlruns/)"'
+        language: system
+        pass_filenames: false
