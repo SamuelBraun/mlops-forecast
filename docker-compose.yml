@@ -1,0 +1,71 @@
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.15.1
+    container_name: mlops_mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/mlruns
+      - ./mlartifacts:/mlartifacts
+    command: >
+      mlflow server
+        --backend-store-uri file:///mlruns
+        --default-artifact-root /mlartifacts
+        --host 0.0.0.0
+        --port 5000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s   # mlflow install takes ~30s on first boot
+    networks:
+      - mlops-net
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    container_name: mlops_api
+    ports:
+      - "8000:8000"
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MODEL_NAME: ElectricityForecast
+      MODEL_STAGE: Production
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    volumes:
+      - ./conf/local/credentials.yml:/app/conf/local/credentials.yml:ro
+    networks:
+      - mlops-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: docker/streamlit.Dockerfile
+    container_name: mlops_streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      API_BASE_URL: http://api:8000
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - mlops-net
+
+networks:
+  mlops-net:
+    driver: bridge
+
+volumes:
+  mlruns:
+  mlartifacts:
