@@ -1,0 +1,11 @@
+project: mlops_forecast
+provider: local
+registry:
+  path: ../data/registry.db
+  registry_type: file
+online_store:
+  type: sqlite
+  path: ../data/online_store.db
+offline_store:
+  type: file
+entity_key_serialization_version: 3
