@@ -302,7 +302,12 @@ The deployed model reaches 1.02\% MAPE on the 2020 test set, six times better th
 The more interesting analytical result is in the intervals. Split-conformal hits 80\% validation coverage by construction and drops to 73\% on the 2020 test set, because the COVID-19 lockdown breaks the exchangeability assumption that split-conformal relies on. The adaptive baseline recovers nominal coverage at roughly a 16\% width premium, and the architecture already supports promoting it with a few lines of change inside the wrapper. The open work outside the model is an automated hyperparameter sweep, multi-zone support through the Feast schema we already have, and a streaming path from the online store. The system supports all three; we deferred them because the scope here is a single-country batch deployment, not because they are out of reach.
 
 % ══════════════════════════════════════════════════════════════════════════════
+% Back-matter switches to roman numerals so References and Annex are visually
+% separated from the 6-page body. Continues the counter from the TOC (which
+% ended at i), so References starts at ii.
 \clearpage
+\pagenumbering{roman}
+\setcounter{page}{2}
 \addcontentsline{toc}{section}{References}
 \let\OLDthebibliography\thebibliography
 \renewcommand{\thebibliography}[1]{%
