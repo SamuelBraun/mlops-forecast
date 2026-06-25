@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 # absolute and the same regardless of which directory `kedro run` is invoked
 # from. Override with the `MLFLOW_TRACKING_URI` env var if the team is using
 # a remote tracking server.
-_DEFAULT_MLFLOW_URI = f"file://{Path('mlruns').resolve()}"
+_DEFAULT_MLFLOW_URI = Path("mlruns").resolve().as_uri()
 
 
 def _setup_mlflow(experiment_name: str) -> None:
