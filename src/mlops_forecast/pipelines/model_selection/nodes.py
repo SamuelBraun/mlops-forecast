@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # File-based MLflow store under `./mlruns`. See model_train/nodes.py for
 # the same default used in the trainer.
-_DEFAULT_MLFLOW_URI = f"file://{Path('mlruns').resolve()}"
+_DEFAULT_MLFLOW_URI = Path("mlruns").resolve().as_uri()
 
 
 def select_and_promote(

@@ -31,7 +31,7 @@ from mlops_forecast.serving.quantile_lgbm import (
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_MLFLOW_URI = f"file://{Path('mlruns').resolve()}"
+_DEFAULT_MLFLOW_URI = Path("mlruns").resolve().as_uri()
 
 
 def generate_predictions(

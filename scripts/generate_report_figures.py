@@ -114,7 +114,7 @@ def fig_monthly_mape() -> None:
 
 def fig_cv_folds() -> None:
     """Pull the four nested CV runs from MLflow and plot per-fold MAPE."""
-    mlflow.set_tracking_uri(f"file://{(PROJECT_ROOT / 'mlruns').resolve()}")
+    mlflow.set_tracking_uri((PROJECT_ROOT / "mlruns").resolve().as_uri())
     from mlflow import MlflowClient
 
     client = MlflowClient()
