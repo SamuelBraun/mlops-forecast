@@ -10,7 +10,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # type: ignore[no-untyped-def]
         [
             node(
                 func=generate_predictions,
-                inputs=["X_test", "y_test", "params:model_predict"],
+                inputs=["X_test", "y_test", "model_selection_results", "params:model_predict"],
                 outputs="predictions",
                 name="generate_predictions_node",
                 tags=["model_predict"],
