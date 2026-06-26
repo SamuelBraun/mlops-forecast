@@ -37,9 +37,14 @@ _DEFAULT_MLFLOW_URI = Path("mlruns").resolve().as_uri()
 def generate_predictions(
     X_test: pd.DataFrame,
     y_test: pd.DataFrame,
+    model_selection_results: pd.DataFrame,  # noqa: ARG001  — DAG ordering only
     params: dict,
 ) -> pd.DataFrame:
     """Load the Production model from the registry and score X_test.
+
+    The ``model_selection_results`` argument is unused at runtime; it is
+    declared as a Kedro input so that the DAG scheduler will not run this
+    node until ``model_selection`` has promoted a model to Production.
 
     Returns a DataFrame with actuals, point predictions, and the calibrated
     lower and upper bounds. When the registered model is the conformalised

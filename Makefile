@@ -46,7 +46,7 @@ download-data:  ## Fetch OPSD dataset into data/01_raw/
 	$(PYTHON) scripts/download_data.py
 
 run:  ## Run full Kedro pipeline end-to-end
-	$(KEDRO) run
+	$(KEDRO) run --pipeline __default__
 
 run-quality:  ## Run data_quality pipeline only
 	$(KEDRO) run --pipeline data_quality
@@ -93,7 +93,7 @@ demo:  ## Full end-to-end: fetch data, run pipelines, publish Feast, bring servi
 		echo "==> OPSD dataset already present, skipping download"; \
 	fi
 	@echo "==> Running all eight Kedro pipelines"
-	$(KEDRO) run
+	$(KEDRO) run --pipeline __default__
 	@echo "==> Publishing features into Feast"
 	$(VENV)/bin/python scripts/publish_to_feast.py
 	@echo "==> Bringing up MLflow + FastAPI + Streamlit (docker compose)"
